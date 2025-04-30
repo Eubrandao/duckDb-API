@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from typing import List
 import duckdb
 
-
 class Dados(BaseModel):
     ano: int
     indice_educacao: float
@@ -12,8 +11,10 @@ class Dados(BaseModel):
 
 app = FastAPI()
 
-conn = duckdb.connect(database=':memory:', read_only=False)
+# Conexão com o banco DuckDB em memória
+conn = duckdb.connect(database='meu_banco.db', read_only=False)
 
+# Função para criar a tabela
 def criar_tabela():
     conn.execute("""
         CREATE TABLE IF NOT EXISTS indicadores (
@@ -24,6 +25,7 @@ def criar_tabela():
         );
     """)
 
+# Função para popular a tabela com dados iniciais
 def popular_tabela():
     dados_iniciais = [
         {"ano": 2018, "indice_educacao": 0.55, "indice_saude": 0.6, "observacao": "Dados iniciais"},
@@ -38,13 +40,13 @@ def popular_tabela():
             VALUES (?, ?, ?, ?);
         """, (item["ano"], item["indice_educacao"], item["indice_saude"], item["observacao"]))
 
-
+# Endpoint para consultar os indicadores
 @app.get("/indicadores", response_model=List[Dados])
 def get_indicadores():
     resultado = conn.execute("SELECT * FROM indicadores").fetchall()
     return [{"ano": row[0], "indice_educacao": row[1], "indice_saude": row[2], "observacao": row[3]} for row in resultado]
 
-
+# Endpoint para inserir dados na tabela
 @app.post("/inserir", response_model=Dados)
 def inserir_dados(dados: Dados):
     conn.execute("""
@@ -53,13 +55,8 @@ def inserir_dados(dados: Dados):
     """, (dados.ano, dados.indice_educacao, dados.indice_saude, dados.observacao))
     return dados
 
-
+# Evento de startup para criar a tabela e popular com dados iniciais
 @app.on_event("startup")
 def on_startup():
-    try:
-        criar_tabela()
-        popular_tabela()
-    except Exception as e:
-        print(f"Erro durante o evento startup: {e}")
-
-
+    criar_tabela()
+    popular_tabela()
