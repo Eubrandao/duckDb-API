@@ -56,6 +56,10 @@ def inserir_dados(dados: Dados):
 
 @app.on_event("startup")
 def on_startup():
-    criar_tabela()
-    popular_tabela()
+    try:
+        criar_tabela()
+        popular_tabela()
+    except Exception as e:
+        print(f"Erro durante o evento startup: {e}")
+
 
